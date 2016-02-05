@@ -1,0 +1,44 @@
+#!/usr/bin/env lua
+-- created by mzq
+
+--[[
+luarocks install yaml
+luarocks install serpent
+luarocks install argparse
+--]]
+
+local yaml = require "yaml"
+local serpent = require "serpent"
+local argparse = require "argparse"
+
+local parser = argparse("unity-yaml2lua", "Parse unity yaml file to lua table.")
+parser:argument("input", "Input yaml file.")
+parser:option("-o --output", "Output lua file.")
+local args = parser:parse()
+
+local file = io.open(args.input)
+local data = file:read("a")
+file:close()
+
+local tag = "%%TAG !u! tag:unity3d.com,2011:\n"
+data = data:gsub(tag, "")
+data = data:gsub("%-%-%-", tag .. "---")
+data = data:gsub(" stripped", "")
+
+local lua_data = {}
+for i, item in ipairs(table.pack(yaml.load(data))) do
+	for k, v in pairs(item) do
+		lua_data[k] = v
+	end
+end
+
+data = "return " .. serpent.block(lua_data, {comment = false})
+if not args.output then
+	print(data)
+	return
+end
+
+file = io.open(args.output, "w")
+file:write(data)
+file:flush()
+file:close()
