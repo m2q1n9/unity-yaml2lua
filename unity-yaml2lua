@@ -20,19 +20,17 @@ local file = io.open(args.input)
 local data = file:read("a")
 file:close()
 
-local tag = "%%TAG !u! tag:unity3d.com,2011:\n"
-data = data:gsub(tag, "")
-data = data:gsub("%-%-%-", tag .. "---")
-data = data:gsub(" stripped", "")
+data = data:gsub("u!(%d+) &(%d+).-\n(.-):\n",
+	"<" .. data:match("%%TAG !u! (.-)\n") .. "%1> &%2\n%2:\n  class: %3\n")
 
 local lua_data = {}
 for i, item in ipairs(table.pack(yaml.load(data))) do
-	for k, v in pairs(item) do
-		lua_data[k] = v
-	end
+	for k, v in pairs(item) do lua_data[tostring(k)] = v end
 end
 
 data = "return " .. serpent.block(lua_data, {comment = false})
+data = data:gsub("%.0(,?)\n", "%1\n")
+
 if not args.output then
 	print(data)
 	return
